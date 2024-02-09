@@ -1,0 +1,12 @@
+obj/
+bin/
+logs/
+
+build/
+.vs/
+.vscode/
+
+*.vcxproj*
+*.sln
+
+vcpkg_installed/
