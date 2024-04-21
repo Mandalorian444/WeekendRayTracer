@@ -14,6 +14,23 @@
 #include <Renderer/Sphere.h>
 
 
+Vec3 Random_in_unit_sphere(
+    std::uniform_real_distribution<float>& distribution,
+    std::mt19937& gen
+)
+{
+    Vec3 point;
+    do
+    {
+        point =
+            2.0f *
+                Vec3(distribution(gen), distribution(gen), distribution(gen)) -
+            Vec3(1.0f, 1.0f, 1.0f);
+    }
+    while (point.squared_length() >= 1.0f);
+    return point;
+}
+
 Vec3 Color(const Ray& r)
 {
     float t = HitSphere(r, Vec3(0.0f, 0.0f, -1.0f), 0.5f);
@@ -28,12 +45,22 @@ Vec3 Color(const Ray& r)
     return (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
 }
 
-Vec3 Color(const Ray& r, Hitable* world)
+Vec3 Color(
+    const Ray& r,
+    Hitable* world,
+    std::uniform_real_distribution<float>& distribution,
+    std::mt19937& gen
+)
 {
     HitRecord rec;
-    if (world->hit(r, 0.0f, std::numeric_limits<float>().max(), rec))
+    if (world->hit(r, 0.0001f, std::numeric_limits<float>().max(), rec))
     {
-        return 0.5f * (rec.normal + Vec3(1.0f, 1.0f, 1.0f));
+        Vec3 target =
+            rec.point + rec.normal + Random_in_unit_sphere(distribution, gen);
+        return 0.5f *
+               Color(
+                   Ray(rec.point, target - rec.point), world, distribution, gen
+               );
     }
     Vec3 unit_direction = Unit_vector(r.direction());
     float t             = 0.5f * (unit_direction.y() + 1.0f);
@@ -89,7 +116,7 @@ void RenderScene(Image& image)
                     height;
                 const Ray r{cam.get_ray(u, v)};
                 const Vec3 point = r.point_at_parameter(2.0f);
-                color += Color(r, world);
+                color += Color(r, world, distribution, gen);
             }
             color /= static_cast<float>(samples);
             return Pixel{color.x(), color.y(), color.z(), 1.0f};
