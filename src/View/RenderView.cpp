@@ -30,7 +30,9 @@ void RenderView::onImguiRender()
                 ImVec2{
                     static_cast<float>(_texture.getWidth()),
                     static_cast<float>(_texture.getHeight())
-                }
+                },
+                ImVec2{0, 1},
+                ImVec2{1, 0}
             );
         }
     }
