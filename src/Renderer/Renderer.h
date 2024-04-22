@@ -77,10 +77,10 @@ void RenderScene(Image& image)
     Vec3 vertical(0.0f, 3.0f, 0.0f);
     Vec3 origin(0.0f, 0.0f, 0.0f);
 
-    constexpr const int objectCount = 4;
+    constexpr const int objectCount = 5;
     Hitable* list[objectCount];
     list[0] = new Sphere(
-        Vec3(0.0f, 0.0f, -1.0f), 0.5f, new Lambertian(Vec3(0.8f, 0.3f, 0.3f))
+        Vec3(0.0f, 0.0f, -1.0f), 0.5f, new Lambertian(Vec3(0.1f, 0.2f, 0.5f))
     );
     list[1] = new Sphere(
         Vec3(0.0f, -100.5f, -1.0f),
@@ -90,9 +90,9 @@ void RenderScene(Image& image)
     list[2] = new Sphere(
         Vec3(1.0f, 0.0f, -1.0f), 0.5f, new Metal(Vec3(0.8f, 0.6f, 0.2f), 1.0f)
     );
-    list[3] = new Sphere(
-        Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new Metal(Vec3(0.8f, 0.8f, 0.8f), 0.3f)
-    );
+    list[3] = new Sphere(Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new Dielectric(1.5f));
+    list[4] =
+        new Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new Dielectric(1.5f));
     Hitable* world = new HitableList(list, objectCount);
     Camera cam;
 
