@@ -94,12 +94,20 @@ void RenderScene(Image& image)
     list[4] =
         new Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new Dielectric(1.5f));
     Hitable* world = new HitableList(list, objectCount);
+
+    Vec3 lookFrom(3.0f, 3.0f, 2.0f);
+    Vec3 lookAt(0.0f, 0.0f, -1.0f);
+    float dist_to_focus = (lookFrom - lookAt).length();
+    float aperture      = 2.0f;
+
     Camera cam(
-        Vec3(-2.0f, 2.0f, 1.0f),
-        Vec3(0.0f, 0.0f, -1.0f),
+        lookFrom,
+        lookAt,
         Vec3(0.0f, 1.0f, 0.0f),
-        30.0f,
-        static_cast<float>(width) / height
+        20.0f,
+        static_cast<float>(width) / height,
+        aperture,
+        dist_to_focus
     );
 
     const auto now = std::chrono::system_clock::now();
@@ -125,7 +133,7 @@ void RenderScene(Image& image)
                         IndexTo2D(width, height, index)._y + distribution(gen)
                     ) /
                     height;
-                const Ray r{cam.get_ray(u, v)};
+                const Ray r{cam.get_ray(u, v, distribution, gen)};
                 const Vec3 point = r.point_at_parameter(2.0f);
                 color += Color(r, world, 0, distribution, gen);
             }

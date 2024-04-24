@@ -40,3 +40,17 @@ Vec3 Random_in_unit_sphere(
     while (point.squared_length() >= 1.0f);
     return point;
 }
+
+Vec3 Random_in_unit_disk(
+    std::uniform_real_distribution<float>& distribution, std::mt19937& gen
+)
+{
+    Vec3 p;
+    do
+    {
+        p = 2.0f * Vec3(distribution(gen), distribution(gen), 0) -
+            Vec3(1, 1, 0);
+    }
+    while (Dot(p, p) >= 1.0f);
+    return p;
+}
