@@ -94,7 +94,13 @@ void RenderScene(Image& image)
     list[4] =
         new Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new Dielectric(1.5f));
     Hitable* world = new HitableList(list, objectCount);
-    Camera cam;
+    Camera cam(
+        Vec3(-2.0f, 2.0f, 1.0f),
+        Vec3(0.0f, 0.0f, -1.0f),
+        Vec3(0.0f, 1.0f, 0.0f),
+        30.0f,
+        static_cast<float>(width) / height
+    );
 
     const auto now = std::chrono::system_clock::now();
 
