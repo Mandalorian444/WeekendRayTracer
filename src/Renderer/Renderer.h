@@ -59,13 +59,80 @@ Vec3 Color(
     return (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
 }
 
+Hitable* random_scene(
+    std::uniform_real_distribution<float>& distribution, std::mt19937& gen
+)
+{
+    const int n    = 500;
+    Hitable** list = new Hitable*[n + 1];
+
+    list[0] = new Sphere(
+        Vec3(0, -1000, 0), 1000, new Lambertian(Vec3(0.5f, 0.5f, 0.5f))
+    );
+
+    int i = 1;
+
+    for (int a = -11; a < 11; ++a)
+    {
+        for (int b = -11; b < 11; ++b)
+        {
+            float choose_mat = distribution(gen);
+            Vec3 center(
+                a + 0.9f * distribution(gen), 0.2f, b + 0.9f * distribution(gen)
+            );
+
+            if ((center - Vec3(4.0f, 0.2f, 0.0f)).length() > 0.9f)
+            {
+                if (choose_mat < 0.8f)
+                {
+                    list[i++] = new Sphere(
+                        center,
+                        0.2f,
+                        new Lambertian(Vec3(
+                            distribution(gen) * distribution(gen),
+                            distribution(gen) * distribution(gen),
+                            distribution(gen) * distribution(gen)
+                        ))
+                    );
+                }
+                else if (choose_mat < 0.95f)
+                {
+                    list[i++] = new Sphere(
+                        center,
+                        0.2f,
+                        new Metal(Vec3(
+                            0.5f * (1.0f + distribution(gen)),
+                            0.5f * (1.0f + distribution(gen)),
+                            0.5f * (1.0f + distribution(gen))
+                        ))
+                    );
+                }
+                else
+                {
+                    list[i++] = new Sphere(center, 0.2f, new Dielectric(1.5f));
+                }
+            }
+        }
+    }
+
+    list[i++] = new Sphere(Vec3(0, 1, 0), 1.0f, new Dielectric(1.5f));
+    list[i++] = new Sphere(
+        Vec3(-4, 1, 0), 1.0f, new Lambertian(Vec3(0.4f, 0.2f, 0.1f))
+    );
+    list[i++] = new Sphere(
+        Vec3(4, 1, 0), 1.0f, new Metal(Vec3(0.7f, 0.6f, 0.5f), 0.0f)
+    );
+
+    return new HitableList(list, i);
+}
+
 void RenderScene(Image& image)
 {
     const int width  = image.getWidth();
     const int height = image.getHeight();
     auto& pixels     = image.getPixels();
 
-    const int samples = 50;
+    const int samples = 2;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
@@ -93,18 +160,19 @@ void RenderScene(Image& image)
     list[3] = new Sphere(Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new Dielectric(1.5f));
     list[4] =
         new Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new Dielectric(1.5f));
-    Hitable* world = new HitableList(list, objectCount);
+    Hitable* world       = new HitableList(list, objectCount);
+    Hitable* randomScene = random_scene(distribution, gen);
 
-    Vec3 lookFrom(3.0f, 3.0f, 2.0f);
-    Vec3 lookAt(0.0f, 0.0f, -1.0f);
+    Vec3 lookFrom(16.0f, 2.0f, 6.0f);
+    Vec3 lookAt(0.0f, 0.0f, 0.5f);
     float dist_to_focus = (lookFrom - lookAt).length();
-    float aperture      = 2.0f;
+    float aperture      = 0.1f;
 
     Camera cam(
         lookFrom,
         lookAt,
         Vec3(0.0f, 1.0f, 0.0f),
-        20.0f,
+        15.0f,
         static_cast<float>(width) / height,
         aperture,
         dist_to_focus
@@ -135,7 +203,7 @@ void RenderScene(Image& image)
                     height;
                 const Ray r{cam.get_ray(u, v, distribution, gen)};
                 const Vec3 point = r.point_at_parameter(2.0f);
-                color += Color(r, world, 0, distribution, gen);
+                color += Color(r, randomScene, 0, distribution, gen);
             }
             color /= static_cast<float>(samples);
             return Pixel{color.x(), color.y(), color.z(), 1.0f};
