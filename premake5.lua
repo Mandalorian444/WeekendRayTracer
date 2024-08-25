@@ -10,6 +10,9 @@ project "WeekendRayTracer"
 
     includedirs { "src/" }
 
+    filter {"system:windows"}
+        flags { "MultiProcessorCompile" }
+
     filter { "configurations:Debug" }
       defines { "DEBUG" }
       symbols "On"
