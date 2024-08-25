@@ -4,6 +4,7 @@
 #include <chrono>
 #include <execution>
 #include <iostream>
+#include <mutex>
 #include <random>
 #include <thread>
 
@@ -15,6 +16,29 @@
 #include <Renderer/Ray.h>
 #include <Renderer/Sphere.h>
 
+
+class ChunkData
+{
+    std::size_t _total;
+    const std::size_t _singleSize;
+    std::mutex _mutex;
+
+public:
+    ChunkData(const std::size_t singleSize = 64u)
+      : _total(0),
+        _singleSize(singleSize)
+    {}
+    //  Increments the total and returns the pre-incremented total
+    //  No direct function to get the total is defined to enforce thread safety
+    [[nodiscard]] const std::size_t increment()
+    {
+        std::lock_guard lg(_mutex);
+        const auto ret = _total;
+        _total += _singleSize;
+        return ret;
+    }
+    [[nodiscard]] std::size_t getChunkSize() const { return _singleSize; }
+};
 
 Vec3 Color(const Ray& r)
 {
@@ -216,64 +240,59 @@ void RenderScene(
     //     renderPixels
     // );
 
-    const auto renderPixelChunk = [&](const std::vector<Pixel>::iterator& begin,
-                                      const std::vector<Pixel>::iterator& end,
-                                      const std::size_t beginIdx,
-                                      const int width,
-                                      const int height)
+    const auto renderPixelChunk =
+        [&](ChunkData& chunk,
+            const std::vector<Pixel>::iterator& pixelsBegin,
+            const std::size_t pixelsSize,
+            const int width,
+            const int height)
     {
-        for (auto it = begin; it != end; ++it)
+        std::size_t totalChunk = chunk.increment();
+        while (totalChunk < pixelsSize)
         {
-            const std::size_t index = std::distance(begin, it) + beginIdx;
-            const Coord2D uv        = IndexTo2D(width, height, index);
-            Vec3 color(0.0f, 0.0f, 0.0f);
-            for (std::size_t i = 0u; i < samples; ++i)
+            std::vector<Pixel>::iterator chunkBegin = pixelsBegin + totalChunk;
+            const std::size_t endIdx = totalChunk + chunk.getChunkSize();
+            const std::vector<Pixel>::iterator& chunkEnd =
+                endIdx < pixelsSize ? pixelsBegin + endIdx
+                                    : pixelsBegin + pixelsSize;
+            for (; chunkBegin != chunkEnd; ++chunkBegin)
             {
-                const Ray r{cam.get_ray(
-                    (uv._x + distribution(gen)) / width,
-                    (uv._y + distribution(gen)) / height,
-                    distribution,
-                    gen
-                )};
-                const Vec3 point = r.point_at_parameter(2.0f);
-                color += Color(r, randomScene, 0, distribution, gen);
+                const std::size_t index =
+                    std::distance(pixelsBegin, chunkBegin);
+                const Coord2D uv = IndexTo2D(width, height, index);
+                Vec3 color(0.0f, 0.0f, 0.0f);
+                for (std::size_t i = 0u; i < samples; ++i)
+                {
+                    const Ray r{cam.get_ray(
+                        (uv._x + distribution(gen)) / width,
+                        (uv._y + distribution(gen)) / height,
+                        distribution,
+                        gen
+                    )};
+                    const Vec3 point = r.point_at_parameter(2.0f);
+                    color += Color(r, randomScene, 0, distribution, gen);
+                }
+                color /= static_cast<float>(samples);
+                *chunkBegin = Pixel{color.x(), color.y(), color.z(), 1.0f};
             }
-            color /= static_cast<float>(samples);
-            *it = Pixel{color.x(), color.y(), color.z(), 1.0f};
+            totalChunk = chunk.increment();
         }
     };
 
-    std::size_t chunkTotal        = 0u;
+    ChunkData chunkData(chunkSize);
     const std::size_t threadCount = std::thread::hardware_concurrency();
     std::vector<std::thread> threads;
     threads.reserve(threadCount);
-    while (chunkTotal < pixels.size())
+    for (std::size_t i = 0u; i < threadCount; ++i)
     {
-        if (threads.size() == threadCount)
-        {
-            //  Doesn't seem like the most efficient way to clean up threads
-            //  since it involved waiting for all the threads to finish before
-            //  it can join and clear them all.
-            //  Investigate how to do this better.
-            for (auto& t : threads)
-            {
-                if (t.joinable())
-                {
-                    t.join();
-                }
-            }
-            threads.clear();
-        }
-        const std::size_t toEnd = chunkTotal + chunkSize;
         threads.push_back(std::thread(
             renderPixelChunk,
-            pixels.begin() + chunkTotal,
-            toEnd < pixels.size() ? pixels.begin() + toEnd : pixels.end(),
-            chunkTotal,
+            std::ref(chunkData),
+            pixels.begin(),
+            pixels.size(),
             width,
             height
         ));
-        chunkTotal += chunkSize;
     }
     for (auto& t : threads)
     {
