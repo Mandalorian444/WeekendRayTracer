@@ -16,8 +16,30 @@ void RenderView::onImguiRender()
                 Model::getInstance()->renderScene();
             }
         }
+        int samples = Model::getInstance()->getSamples();
+        ImGui::SetNextItemWidth(100.0f);
+        if (ImGui::InputInt("Samples", &samples))
+        {
+            Model::getInstance()->setSamples(samples);
+        }
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(100.0f);
+        int chunkSize = Model::getInstance()->getChunkSize();
+        if (ImGui::InputInt("Chunk Size", &chunkSize))
+        {
+            Model::getInstance()->setChunkSize(chunkSize);
+        }
+        ImGui::SameLine();
+        bool test = Model::getInstance()->getTest();
+        if(ImGui::Checkbox("Test", &test))
+        {
+            Model::getInstance()->setTest(test);
+        }
+        ImGui::SameLine();
         if (ImGui::Button("UV"))
         {
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            Model::getInstance()->setImage(contentRegion.x, contentRegion.y);
             Model::getInstance()->renderScene();
         }
 
