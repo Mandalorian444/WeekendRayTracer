@@ -154,7 +154,8 @@ Hitable* random_scene(
 void RenderScene(
     Image& image,
     const std::size_t samples   = 2u,
-    const std::size_t chunkSize = 4096u
+    const std::size_t chunkSize = 4096u,
+    bool test                   = false
 )
 {
     const int width  = image.getWidth();
@@ -208,97 +209,104 @@ void RenderScene(
 
     const auto now = std::chrono::system_clock::now();
 
-    // const auto renderPixels = [&](const Pixel& current)
-    // {
-    //     Vec3 color(0.0f, 0.0f, 0.0f);
-    //     for (int i = 0; i < samples; ++i)
-    //     {
-    //         const int index = &current - &(*pixels.begin());
-    //         const float u =
-    //             static_cast<float>(
-    //                 IndexTo2D(width, height, index)._x + distribution(gen)
-    //             ) /
-    //             width;
-    //         const float v =
-    //             static_cast<float>(
-    //                 IndexTo2D(width, height, index)._y + distribution(gen)
-    //             ) /
-    //             height;
-    //         const Ray r{cam.get_ray(u, v, distribution, gen)};
-    //         const Vec3 point = r.point_at_parameter(2.0f);
-    //         color += Color(r, randomScene, 0, distribution, gen);
-    //     }
-    //     color /= static_cast<float>(samples);
-    //     return Pixel{color.x(), color.y(), color.z(), 1.0f};
-    // };
-
-    // std::transform(
-    //     std::execution::par,
-    //     pixels.begin(),
-    //     pixels.end(),
-    //     pixels.begin(),
-    //     renderPixels
-    // );
-
-    const auto renderPixelChunk =
-        [&](ChunkData& chunk,
-            const std::vector<Pixel>::iterator& pixelsBegin,
-            const std::size_t pixelsSize,
-            const int width,
-            const int height)
+    if (!test)
     {
-        std::size_t totalChunk = chunk.increment();
-        while (totalChunk < pixelsSize)
+        const auto renderPixels = [&](const Pixel& current)
         {
-            std::vector<Pixel>::iterator chunkBegin = pixelsBegin + totalChunk;
-            const std::size_t endIdx = totalChunk + chunk.getChunkSize();
-            const std::vector<Pixel>::iterator& chunkEnd =
-                endIdx < pixelsSize ? pixelsBegin + endIdx
-                                    : pixelsBegin + pixelsSize;
-            for (; chunkBegin != chunkEnd; ++chunkBegin)
+            Vec3 color(0.0f, 0.0f, 0.0f);
+            for (int i = 0; i < samples; ++i)
             {
-                const std::size_t index =
-                    std::distance(pixelsBegin, chunkBegin);
-                const Coord2D uv = IndexTo2D(width, height, index);
-                Vec3 color(0.0f, 0.0f, 0.0f);
-                for (std::size_t i = 0u; i < samples; ++i)
-                {
-                    const Ray r{cam.get_ray(
-                        (uv._x + distribution(gen)) / width,
-                        (uv._y + distribution(gen)) / height,
-                        distribution,
-                        gen
-                    )};
-                    const Vec3 point = r.point_at_parameter(2.0f);
-                    color += Color(r, randomScene, 0, distribution, gen);
-                }
-                color /= static_cast<float>(samples);
-                *chunkBegin = Pixel{color.x(), color.y(), color.z(), 1.0f};
+                const int index = &current - &(*pixels.begin());
+                const float u =
+                    static_cast<float>(
+                        IndexTo2D(width, height, index)._x + distribution(gen)
+                    ) /
+                    width;
+                const float v =
+                    static_cast<float>(
+                        IndexTo2D(width, height, index)._y + distribution(gen)
+                    ) /
+                    height;
+                const Ray r{cam.get_ray(u, v, distribution, gen)};
+                const Vec3 point = r.point_at_parameter(2.0f);
+                color += Color(r, randomScene, 0, distribution, gen);
             }
-            totalChunk = chunk.increment();
-        }
-    };
+            color /= static_cast<float>(samples);
+            return Pixel{color.x(), color.y(), color.z(), 1.0f};
+        };
 
-    ChunkData chunkData(chunkSize);
-    const std::size_t threadCount = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads;
-    threads.reserve(threadCount);
-    for (std::size_t i = 0u; i < threadCount; ++i)
-    {
-        threads.push_back(std::thread(
-            renderPixelChunk,
-            std::ref(chunkData),
+        std::transform(
+            std::execution::par,
             pixels.begin(),
-            pixels.size(),
-            width,
-            height
-        ));
+            pixels.end(),
+            pixels.begin(),
+            renderPixels
+        );
     }
-    for (auto& t : threads)
+
+    else
     {
-        t.join();
+        const auto renderPixelChunk =
+            [&](ChunkData& chunk,
+                const std::vector<Pixel>::iterator& pixelsBegin,
+                const std::size_t pixelsSize,
+                const int width,
+                const int height)
+        {
+            std::size_t totalChunk = chunk.increment();
+            while (totalChunk < pixelsSize)
+            {
+                std::vector<Pixel>::iterator chunkBegin =
+                    pixelsBegin + totalChunk;
+                const std::size_t endIdx = totalChunk + chunk.getChunkSize();
+                const std::vector<Pixel>::iterator& chunkEnd =
+                    endIdx < pixelsSize ? pixelsBegin + endIdx
+                                        : pixelsBegin + pixelsSize;
+                for (; chunkBegin != chunkEnd; ++chunkBegin)
+                {
+                    const std::size_t index =
+                        std::distance(pixelsBegin, chunkBegin);
+                    const Coord2D uv = IndexTo2D(width, height, index);
+                    Vec3 color(0.0f, 0.0f, 0.0f);
+                    for (std::size_t i = 0u; i < samples; ++i)
+                    {
+                        const Ray r{cam.get_ray(
+                            (uv._x + distribution(gen)) / width,
+                            (uv._y + distribution(gen)) / height,
+                            distribution,
+                            gen
+                        )};
+                        const Vec3 point = r.point_at_parameter(2.0f);
+                        color += Color(r, randomScene, 0, distribution, gen);
+                    }
+                    color /= static_cast<float>(samples);
+                    *chunkBegin = Pixel{color.x(), color.y(), color.z(), 1.0f};
+                }
+                totalChunk = chunk.increment();
+            }
+        };
+
+        ChunkData chunkData(chunkSize);
+        const std::size_t threadCount = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        threads.reserve(threadCount);
+        for (std::size_t i = 0u; i < threadCount; ++i)
+        {
+            threads.push_back(std::thread(
+                renderPixelChunk,
+                std::ref(chunkData),
+                pixels.begin(),
+                pixels.size(),
+                width,
+                height
+            ));
+        }
+        for (auto& t : threads)
+        {
+            t.join();
+        }
+        threads.clear();
     }
-    threads.clear();
 
     std::cout << "Render time: "
               << std::chrono::duration_cast<std::chrono::milliseconds>(
