@@ -1,20 +1,20 @@
 workspace "WeekendRayTracer"
     architecture "x86_64"
-   configurations { "Debug", "Release" }
+    configurations { "Debug", "Release" }
 
 project "WeekendRayTracer"
-   kind "ConsoleApp"
-   language "C++"
-   cppdialect "C++20"
-   files { "src/**.h", "src/**.cpp" }
+    kind "ConsoleApp"
+    language "C++"
+    cppdialect "C++20"
+    files { "src/**.h", "src/**.cpp" }
 
-   includedirs { "src/" }
+    includedirs { "src/" }
 
-   filter { "configurations:Debug" }
+    filter { "configurations:Debug" }
       defines { "DEBUG" }
       symbols "On"
 
-   filter { "configurations:Release" }
+    filter { "configurations:Release" }
       defines { "NDEBUG" }
       optimize "On"
 
