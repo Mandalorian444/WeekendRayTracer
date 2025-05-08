@@ -1,17 +1,56 @@
+outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+
 workspace "WeekendRayTracer"
     architecture "x86_64"
     configurations { "Debug", "Release" }
-
-project "WeekendRayTracer"
+    location "."
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++20"
     files { "src/**.h", "src/**.cpp" }
 
-    includedirs { "src/" }
+    defines { "GLEW_NO_GLU" }
+
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("obj/" .. outputdir .. "/%{prj.name}")
 
     filter {"system:windows"}
+        defines { "WRT_WINDOWS" }
         flags { "MultiProcessorCompile" }
+
+        prebuildcommands { "vcpkg install" }
+
+    filter {"system:linux"}
+        defines { "WRT_LINUX" }
+        toolset "gcc"
+
+        prebuildcommands { "vcpkg install --triplet=x64-linux-dynamic" }
+
+        linkoptions { "-Wl,-rpath,'$$ORIGIN/lib'" }
+
+        includedirs {
+            "vcpkg_installed/x64-linux-dynamic/include"
+        }
+
+        libdirs {
+            "vcpkg_installed/x64-linux-dynamic/lib"
+        }
+
+        links {
+            "dl",
+            "glfw",
+            "GLEW",
+            "OpenGL",
+            "imgui"
+        }
+
+        postbuildcommands {
+            "{COPYDIR} vcpkg_installed/x64-linux-dynamic/lib %{cfg.targetdir}"
+        }
+
+project "WeekendRayTracer"
+
+    includedirs { "src/" }
 
     filter { "configurations:Debug" }
       defines { "DEBUG" }

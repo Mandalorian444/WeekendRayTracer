@@ -1,5 +1,8 @@
 #include "Image.h"
 
+#include <utility>
+
+
 const std::vector<Pixel>& Image::getPixels() const { return _pixels; }
 
 std::vector<Pixel>& Image::getPixels()

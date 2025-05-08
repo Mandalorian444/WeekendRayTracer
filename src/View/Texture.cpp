@@ -2,8 +2,9 @@
 
 #include <cassert>
 
+#include <GL/glew.h>
+
 #include <View/GLHelpers.h>
-#include <gl/glew.h>
 
 
 void Texture::_initTexture(const Pixel fill, int width, int height)
