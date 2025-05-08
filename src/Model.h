@@ -25,5 +25,6 @@ public:
     void setChunkSize(const int chunkSize);
     void setTest(const bool test);
 
+    void genTestUVs();
     void renderScene();
 };

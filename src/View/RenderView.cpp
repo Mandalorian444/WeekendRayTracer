@@ -36,10 +36,20 @@ void RenderView::onImguiRender()
             Model::getInstance()->setTest(test);
         }
         ImGui::SameLine();
+        static ImVec2 imageSize{ 720.0f, 480.0f };
+        ImGui::SetNextItemWidth(100.0f);
+        ImGui::InputFloat2("Image Size", &imageSize.x);
+        if (ImGui::IsItemDeactivatedAfterEdit() && imageSize.x > 0 && imageSize.y > 0)
+        {
+            Model::getInstance()->setImage(imageSize.x, imageSize.y);
+        }
         if (ImGui::Button("UV"))
         {
-            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-            Model::getInstance()->setImage(contentRegion.x, contentRegion.y);
+            Model::getInstance()->genTestUVs();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Render"))
+        {
             Model::getInstance()->renderScene();
         }
 

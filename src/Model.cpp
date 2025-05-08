@@ -34,8 +34,9 @@ void Model::setChunkSize(const int chunkSize) { _chunkSize = chunkSize; }
 
 void Model::setTest(const bool test) { _test = test; }
 
+void Model::genTestUVs() { GenerateUV(_currentImage); }
+
 void Model::renderScene()
 {
-    // GenerateUV(_currentImage);
     RenderScene(_currentImage, _samples, _chunkSize, _test);
 }
