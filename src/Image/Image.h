@@ -23,9 +23,9 @@ private:
 
 public:
     constexpr Image()
-      : _width(400),
-        _height(300),
-        _pixels((400 * 300), {0, 0, 0, 0})
+      : _width(720),
+        _height(480),
+        _pixels((720 * 480), {0, 0, 0, 0})
     {}
     constexpr Image(
         const int width, const int height, const Pixel fill = {0, 0, 0, 0}
