@@ -211,6 +211,7 @@ void RenderScene(
 
     if (!test)
     {
+        std::cout << "Using std::transform\n";
         const auto renderPixels = [&](const Pixel& current)
         {
             Vec3 color(0.0f, 0.0f, 0.0f);
@@ -246,6 +247,7 @@ void RenderScene(
 
     else
     {
+        std::cout << "My own threads\n";
         const auto renderPixelChunk =
             [&](ChunkData& chunk,
                 const std::vector<Pixel>::iterator& pixelsBegin,
@@ -288,10 +290,12 @@ void RenderScene(
 
         ChunkData chunkData(chunkSize);
         const std::size_t threadCount = std::thread::hardware_concurrency();
+        std::cout << "Threads: " << threadCount << std::endl;
         std::vector<std::thread> threads;
         threads.reserve(threadCount);
         for (std::size_t i = 0u; i < threadCount; ++i)
         {
+            std::cout << "Launching thread " << i << std::endl;
             threads.push_back(std::thread(
                 renderPixelChunk,
                 std::ref(chunkData),
