@@ -236,6 +236,7 @@ void RenderScene(
             return Pixel{color.x(), color.y(), color.z(), 1.0f};
         };
 
+        //  TODO: requires tbb to run in parallel on Linux
         std::transform(
             std::execution::par,
             pixels.begin(),
